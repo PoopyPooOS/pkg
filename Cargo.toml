@@ -3,7 +3,15 @@ name = "pkg"
 version = "0.1.0"
 edition = "2021"
 
+[profile.release]
+opt-level = "z"
+lto = true
+strip = true
+
 [dependencies]
-clap = { version = "4.5.23", features = ["derive"] }
+clap = { version = "4.5.23", default-features = false, features = [
+    "std",
+    "derive",
+] }
 
 logger = { version = "0.1.0", path = "../logger" }
