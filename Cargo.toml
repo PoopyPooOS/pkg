@@ -1,17 +1,13 @@
 [package]
 name = "pkg"
 version = "0.1.0"
-edition = "2021"
-
-[profile.release]
-opt-level = "z"
-lto = true
-strip = true
+edition = "2024"
 
 [dependencies]
-clap = { version = "4.5.23", default-features = false, features = [
-    "std",
-    "derive",
-] }
+clap = { workspace = true }
 
-logger = { version = "0.1.0", path = "../logger" }
+logger = { workspace = true }
+libpkg = { path = "libpkg", default-features = false }
+
+[lints]
+workspace = true

@@ -1,0 +1,31 @@
+[package]
+name = "libpkg"
+version = "0.1.0"
+edition = "2024"
+
+[features]
+default = ["repositories"]
+repositories = ["dep:reqwest", "dep:url"]
+
+[dependencies]
+# Data fetching
+reqwest = { workspace = true, optional = true }
+url = { workspace = true, features = ["serde"], optional = true }
+
+# Serialization
+serde = { workspace = true }
+bincode = { workspace = true }
+serde-inline-default = { workspace = true }
+
+# Generation VCS
+git2 = { workspace = true }
+chrono = { workspace = true }
+# Other
+thiserror = { workspace = true }
+rustix = { workspace = true, features = ["fs"] }
+
+logger = { workspace = true }
+tl = { workspace = true, features = ["toml"] }
+
+[lints]
+workspace = true
