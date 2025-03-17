@@ -35,7 +35,7 @@ pub struct Package {
     #[serde(default)]
     pub runtime_deps: Vec<Dependency>,
 
-    /// Path to the source directory of the package.
+    /// Path to the source directory of the package inside the sandbox.
     pub src: PathBuf,
     /// List of files expected in the build output directory.
     #[serde(default)]
@@ -87,9 +87,7 @@ impl Package {
         let mut runtime = Scope::new(source, ast);
 
         let evaluated: Option<Package> = match runtime.eval() {
-            Ok(value) if value != Value::Null => Ok(Some(
-                Deserialize::deserialize(value).map_err(|err| Box::new(make_fatal!("Could not deserialize value: {err}")))?,
-            )),
+            Ok(value) if value != Value::Null => Ok(Some(Deserialize::deserialize(value).map_err(|err| Box::new(make_fatal!("Could not deserialize value: {err}")))?)),
             Ok(_) => Ok(None),
             Err(err) => Err(Box::new(Log::from(*err))),
         }?;

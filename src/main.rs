@@ -10,7 +10,7 @@ mod commands;
 fn main() -> Result<(), PackageManagerError> {
     let args = Cli::parse();
 
-    let mut pm = PackageManager::new_with_root(args.root)?;
+    let pm = PackageManager::new_with_root(args.root);
 
     if args.command.needs_complete_root() && !pm.check_root() {
         fatal!("The root that was passed is corrupted.");
@@ -20,7 +20,7 @@ fn main() -> Result<(), PackageManagerError> {
     match args.command {
         Command::Install { source } => commands::install(pm, source)?,
         Command::Remove { id } => commands::remove(pm, id)?,
-        Command::InitRoot => commands::init_root(&mut pm)?,
+        Command::InitRoot => commands::init_root(&pm)?,
     }
 
     Ok(())

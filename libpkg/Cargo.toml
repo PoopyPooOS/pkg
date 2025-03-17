@@ -3,6 +3,9 @@ name = "libpkg"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+crate-type = ["dylib", "rlib"]
+
 [features]
 default = ["repositories"]
 repositories = ["dep:reqwest", "dep:url"]
@@ -17,12 +20,12 @@ serde = { workspace = true }
 bincode = { workspace = true }
 serde-inline-default = { workspace = true }
 
-# Generation VCS
-git2 = { workspace = true }
-chrono = { workspace = true }
+# OS APIs
+rustix = { workspace = true, features = ["fs", "mount"] }
+libc = { workspace = true }
+
 # Other
 thiserror = { workspace = true }
-rustix = { workspace = true, features = ["fs"] }
 
 logger = { workspace = true }
 tl = { workspace = true, features = ["toml"] }

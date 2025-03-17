@@ -10,14 +10,12 @@ pub enum PackageManagerError {
     PackageNotInstalled,
     #[error("The package is already installed")]
     PackageAlreadyInstalled,
-    #[error("System state repository not loaded")]
-    StateNotLoaded,
+    #[error("Error setting user id")]
+    SetUID,
     #[error("Error evaluating package: {0}")]
     PackageEval(Box<Log>),
     #[error("Error Parsing Int: {0}")]
     ParseInt(#[from] ParseIntError),
-    #[error("Git Error: {0}")]
-    Git(#[from] git2::Error),
     #[error("I/O Error: {0}")]
     IO(#[from] io::Error),
     #[error("I/O Error: {0}")]

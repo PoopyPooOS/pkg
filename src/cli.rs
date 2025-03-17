@@ -25,7 +25,7 @@ pub enum Command {
 
 impl Command {
     pub fn needs_complete_root(&self) -> bool {
-        !matches!(self, Self::InitRoot)
+        !matches!(self, Self::InitRoot { .. })
     }
 }
 

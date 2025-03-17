@@ -1,7 +1,13 @@
-use crate::{err, error::PackageManagerError, event::Event, package::Package, paths};
-use rustix::fs::{IFlags, ioctl_getflags, ioctl_setflags};
+use crate::{err, error::PackageManagerError, event::Event, package::Package};
+use libc::{setuid, uid_t};
+use rustix::{
+    fs::{IFlags, ioctl_getflags, ioctl_setflags},
+    mount::mount_bind,
+};
 use std::{
+    env,
     fs::{self, OpenOptions},
+    os::unix::fs::chroot,
     path::PathBuf,
     sync::mpsc::Sender,
     thread,
@@ -9,6 +15,7 @@ use std::{
 };
 
 const LOCK_POLL_INTERVAL: Duration = Duration::from_secs(1);
+const SANDBOX_UID: uid_t = 1000;
 
 macro_rules! send {
     ($tx:expr, $event:ident) => {
@@ -28,8 +35,7 @@ pub struct StoreItem {
 
 impl super::PackageManager {
     pub fn store_set_immutable(&self, immutable: bool) -> Result<(), PackageManagerError> {
-        let store = paths::store(&self.root);
-        let store_fd = OpenOptions::new().read(true).write(false).open(store)?;
+        let store_fd = OpenOptions::new().read(true).write(false).open(self.store())?;
 
         let flags = if immutable { IFlags::IMMUTABLE } else { IFlags::empty() };
 
@@ -39,8 +45,7 @@ impl super::PackageManager {
     }
 
     pub fn store_is_immutable(&self) -> Result<bool, PackageManagerError> {
-        let store = paths::store(&self.root);
-        let store_fd = OpenOptions::new().read(true).write(false).open(store)?;
+        let store_fd = OpenOptions::new().read(true).write(false).open(self.store())?;
 
         let flags = ioctl_getflags(store_fd)?;
 
@@ -49,12 +54,10 @@ impl super::PackageManager {
 
     /// Check if a given store item exists.
     pub fn get_store_item<S: AsRef<str>>(&self, id: S, version: S) -> Option<StoreItem> {
-        let store = paths::store(&self.root);
-
         let id = id.as_ref();
         let version = version.as_ref();
 
-        let item_path = store.join(id).join(version);
+        let item_path = self.store().join(id).join(version);
 
         if !item_path.exists() {
             return None;
@@ -105,13 +108,25 @@ impl super::PackageManager {
 
         self.store_set_immutable(false)?;
 
-        let path = paths::store(&self.root).join(package.id).join(package.version);
+        let path = self.store().join(package.id).join(package.version);
 
         if path.exists() {
             return err!(PackageAlreadyInstalled);
         }
 
-        fs::create_dir_all(path)?;
+        // Initialize the build environment.
+        fs::create_dir_all(&path)?;
+        fs::create_dir_all(path.join("bin"))?;
+        fs::create_dir_all(path.join("lib"))?;
+
+        mount_bind("/system/nu", path.join("bin/nu"))?;
+
+        chroot(&path)?;
+        env::set_current_dir("/")?;
+
+        if unsafe { setuid(SANDBOX_UID) } != 0 {
+            return err!(SetUID);
+        }
 
         Ok(())
     }
@@ -147,7 +162,7 @@ impl super::PackageManager {
 
         let mut links_to_remove: Vec<PathBuf> = Vec::new();
 
-        let path = paths::store(&self.root).join(id.into());
+        let path = self.store().join(id.into());
 
         if !path.exists() {
             return err!(PackageNotInstalled);
@@ -168,9 +183,7 @@ impl super::PackageManager {
 
             links_to_remove.extend(links);
         } else {
-            let versions = fs::read_dir(&path)?
-                .filter_map(Result::ok)
-                .map(|entry| entry.file_name().display().to_string());
+            let versions = fs::read_dir(&path)?.filter_map(Result::ok).map(|entry| entry.file_name().display().to_string());
 
             for version in versions {
                 let links = fs::read_to_string(path.join(version).join("links"))?
