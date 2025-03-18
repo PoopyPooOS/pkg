@@ -22,7 +22,7 @@ serde-inline-default = { workspace = true }
 
 # OS APIs
 rustix = { workspace = true, features = ["fs", "mount"] }
-libc = { workspace = true }
+nix = { workspace = true, features = ["user", "process"] }
 
 # Other
 thiserror = { workspace = true }

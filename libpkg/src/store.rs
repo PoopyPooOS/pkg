@@ -1,5 +1,8 @@
 use crate::{err, error::PackageManagerError, event::Event, package::Package};
-use libc::{setuid, uid_t};
+use nix::{
+    sys::wait::waitpid,
+    unistd::{ForkResult, Uid, fork, setuid},
+};
 use rustix::{
     fs::{IFlags, ioctl_getflags, ioctl_setflags},
     mount::mount_bind,
@@ -15,7 +18,7 @@ use std::{
 };
 
 const LOCK_POLL_INTERVAL: Duration = Duration::from_secs(1);
-const SANDBOX_UID: uid_t = 1000;
+const SANDBOX_UID: Uid = Uid::from_raw(1000);
 
 macro_rules! send {
     ($tx:expr, $event:ident) => {
@@ -121,11 +124,16 @@ impl super::PackageManager {
 
         mount_bind("/system/nu", path.join("bin/nu"))?;
 
-        chroot(&path)?;
-        env::set_current_dir("/")?;
+        match unsafe { fork()? } {
+            ForkResult::Parent { child } => {
+                waitpid(child, None)?;
+            }
+            ForkResult::Child => {
+                chroot(&path)?;
+                env::set_current_dir("/")?;
 
-        if unsafe { setuid(SANDBOX_UID) } != 0 {
-            return err!(SetUID);
+                setuid(SANDBOX_UID).map_err(|_| PackageManagerError::SetUID)?;
+            }
         }
 
         Ok(())

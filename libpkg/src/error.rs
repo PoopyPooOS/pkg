@@ -20,6 +20,8 @@ pub enum PackageManagerError {
     IO(#[from] io::Error),
     #[error("I/O Error: {0}")]
     RustixIO(#[from] rustix::io::Errno),
+    #[error("OS Error: {0}")]
+    Nix(#[from] nix::errno::Errno),
 }
 
 impl From<Box<Log>> for PackageManagerError {
