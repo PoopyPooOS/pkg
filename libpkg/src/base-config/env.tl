@@ -1,4 +1,4 @@
 {
-    PATH = "/system/bin:/bin"
+    PATH = "/bin"
     LANG = "en-US.UTF-8"
 }
