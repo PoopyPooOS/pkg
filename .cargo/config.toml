@@ -1,0 +1,3 @@
+# Most operations will require root privileges
+[target.'cfg(unix)']
+runner = "sudo"
