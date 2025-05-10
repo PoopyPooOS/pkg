@@ -1,3 +1,4 @@
 /.helix
-/rootfs
+/libpkg/.helix
 /libpkg/Cargo.lock
+/rootfs

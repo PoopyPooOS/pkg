@@ -16,10 +16,13 @@ pub fn remove(pm: PackageManager, id: impl ToString) -> Result<(), PackageManage
         match event {
             E::AwaitingUnlock => info!("The package store is locked because of other processes using it"),
             E::Unlocked => info!("Package store unlocked"),
-            E::AllocatingStore => trace!("Creating directory in package store"),
+            E::AllocatingInStore => trace!("Creating directory in package store"),
+            E::CopySrcProgress(_copied, _total) => {
+                // TODO: Render a progress bar
+            }
 
             E::Error(err) => match err {
-                Error::PackageAlreadyInstalled => error!("Package already installed"),
+                Error::PackageNotInstalled => error!("Package not installed"),
                 _ => return Err(err),
             },
         }

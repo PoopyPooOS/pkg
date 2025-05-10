@@ -36,7 +36,7 @@ pub struct Package {
     pub runtime_deps: Vec<Dependency>,
 
     /// Path to the source directory of the package inside the sandbox.
-    pub src: PathBuf,
+    pub src: Src,
     /// List of files expected in the build output directory.
     #[serde(default)]
     pub expected_output: Vec<PathBuf>,
@@ -45,6 +45,41 @@ pub struct Package {
     pub build: String,
     /// The nushell script that will be ran for the install stage.
     pub install: String,
+
+    #[serde(skip)]
+    pub(crate) package_path: Option<PathBuf>,
+}
+
+#[derive(Debug)]
+pub enum Src {
+    Path(PathBuf),
+    // TODO: Use a proper URL type
+    Git(String),
+}
+
+impl Serialize for Src {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            Src::Path(path) => serializer.serialize_str(&path.display().to_string()),
+            Src::Git(url) => serializer.serialize_str(url),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for Src {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let string = String::deserialize(deserializer)?;
+        let path = PathBuf::from(&string);
+
+        // TODO: Once more source types are implemented this will need to be a bit smarter
+        if path.exists() { Ok(Self::Path(path)) } else { Ok(Self::Git(string)) }
+    }
 }
 
 #[derive(Debug)]
@@ -73,7 +108,7 @@ impl<'de> Deserialize<'de> for Dependency {
         let s = String::deserialize(deserializer)?;
         let parts: Vec<&str> = s.split('@').collect();
 
-        Ok(Dependency {
+        Ok(Self {
             id: parts[0].to_string(),
             version: parts.iter().skip(1).last().map(ToString::to_string),
         })
@@ -83,6 +118,7 @@ impl<'de> Deserialize<'de> for Dependency {
 impl Package {
     pub fn eval(source: impl Into<Source>) -> Result<Self, Box<Log>> {
         let source = source.into();
+        let package_path = source.path.clone().map(|p| p.canonicalize().unwrap_or(p));
         let ast = parse(&source).map_err(|err| Log::from(*err))?;
         let mut runtime = Scope::new(source, ast);
 
@@ -98,6 +134,8 @@ impl Package {
                 if package.name.is_empty() {
                     package.name = package.id.clone();
                 }
+
+                package.package_path = package_path;
 
                 Ok(package)
             }

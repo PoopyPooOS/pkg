@@ -1,15 +1,20 @@
 /// Paths that are required for a root to be valid.
-pub const ROOT: &[&str] = &["store", "system/generations", "home/root"];
+pub const ROOT: &[&str] = &["store/src", "system/generations", "home/root"];
 
 macro_rules! paths {
     ($(
         $(#[$attr:meta])*
-        $name:ident, $path:expr
-    ),*) => {
+        $name:ident $name_raw:ident $path:expr
+    ),* $(,)?) => {
         impl super::PackageManager {
             $(
                 $(#[$attr])*
                 pub(crate) fn $name(&self) -> std::path::PathBuf {
+                    self.root.join($path)
+                }
+
+                $(#[$attr])*
+                pub(crate) fn $name_raw(&self) -> std::path::PathBuf {
                     $path.into()
                 }
             )*
@@ -17,12 +22,11 @@ macro_rules! paths {
     };
 }
 
-#[rustfmt::skip]
 paths!(
     /// Return the path to the system generations relative to the root.
-    generations, "system/generations",
+    generations generations_raw "system/generations",
     /// Return the path to the package store relative to the root.
-    store, "store",
+    store store_raw "store",
     /// Return the path to the configs relative to the root.
-    config, "config"
+    config config_raw "config",
 );

@@ -23,9 +23,14 @@ serde-inline-default = { workspace = true }
 # OS APIs
 rustix = { workspace = true, features = ["fs", "mount"] }
 nix = { workspace = true, features = ["user", "process"] }
+fs_extra = { workspace = true }
+
+# Nushell
+nu-embed = { workspace = true }
 
 # Other
 thiserror = { workspace = true }
+glob = { workspace = true }
 
 logger = { workspace = true }
 tl = { workspace = true, features = ["toml"] }
