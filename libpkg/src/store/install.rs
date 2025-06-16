@@ -3,14 +3,14 @@ use crate::{
     error::{Context, PackageManagerError},
     event::Event,
     package::{Package, Src},
-    store::{LOCK_POLL_INTERVAL, SANDBOX_UID, check_err, send},
+    store::{check_err, send, LOCK_POLL_INTERVAL, SANDBOX_UID},
 };
 use fs_extra::dir::{CopyOptions, TransitProcessResult};
-use logger::info;
 use nix::{
     sys::wait::waitpid,
-    unistd::{ForkResult, chroot, fork, setuid},
+    unistd::{chroot, fork, setuid, ForkResult},
 };
+use prelude::logger::info;
 use std::{
     env,
     fs::{self, File},
@@ -64,7 +64,7 @@ impl crate::PackageManager {
         let src = match package.src {
             Src::Path(src) => match src {
                 _ if src.is_absolute() => src,
-                _ if let Some(package_path) = package.package_path => {
+                _ if let Some(package_path) = package.path => {
                     let joined = package_path.join(src);
                     joined.canonicalize().unwrap_or(joined)
                 }

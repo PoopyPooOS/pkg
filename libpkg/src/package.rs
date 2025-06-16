@@ -1,11 +1,15 @@
-use logger::{Log, make_error, make_fatal};
+use prelude::logger::{make_error, make_fatal, Log};
 use serde::{Deserialize, Serialize};
 use serde_inline_default::serde_inline_default;
 use std::path::PathBuf;
 use tl::{
-    Source,
+    object,
     parser::parse,
-    runtime::{Scope, types::Value},
+    runtime::{
+        types::{NativeFunction, Value},
+        Scope,
+    },
+    Source,
 };
 
 #[serde_inline_default]
@@ -46,8 +50,9 @@ pub struct Package {
     /// The nushell script that will be ran for the install stage.
     pub install: String,
 
+    /// Path to the package file.
     #[serde(skip)]
-    pub(crate) package_path: Option<PathBuf>,
+    pub(crate) path: Option<PathBuf>,
 }
 
 #[derive(Debug)]
@@ -78,7 +83,11 @@ impl<'de> Deserialize<'de> for Src {
         let path = PathBuf::from(&string);
 
         // TODO: Once more source types are implemented this will need to be a bit smarter
-        if path.exists() { Ok(Self::Path(path)) } else { Ok(Self::Git(string)) }
+        if path.exists() {
+            Ok(Self::Path(path))
+        } else {
+            Ok(Self::Git(string))
+        }
     }
 }
 
@@ -89,10 +98,7 @@ pub struct Dependency {
 }
 
 impl Serialize for Dependency {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         match &self.version {
             Some(version) if !version.is_empty() => serializer.serialize_str(&format!("{}@{}", self.id, version)),
             _ => serializer.serialize_str(&self.id),
@@ -101,10 +107,7 @@ impl Serialize for Dependency {
 }
 
 impl<'de> Deserialize<'de> for Dependency {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let s = String::deserialize(deserializer)?;
         let parts: Vec<&str> = s.split('@').collect();
 
@@ -120,10 +123,47 @@ impl Package {
         let source = source.into();
         let package_path = source.path.clone().map(|p| p.canonicalize().unwrap_or(p));
         let ast = parse(&source).map_err(|err| Log::from(*err))?;
-        let mut runtime = Scope::new(source, ast);
+        let mut scope = Scope::new(source, ast);
 
-        let evaluated: Option<Package> = match runtime.eval() {
-            Ok(value) if value != Value::Null => Ok(Some(Deserialize::deserialize(value).map_err(|err| Box::new(make_fatal!("Could not deserialize value: {err}")))?)),
+        scope.add_native_fn(
+            "package",
+            NativeFunction::Strict {
+                params: 1,
+                func: Box::new(|args| {
+                    let Some(data @ Value::Object(_)) = args.first() else {
+                        return Err(Box::new(tl::Error::new(
+                            tl::runtime::ErrorType::NativeFnError("The `package` function requires an object as input".into()),
+                            None,
+                        )));
+                    };
+
+                    Ok(object!(kind = Value::String("Package".into()), data = data.clone()))
+                }),
+            },
+        );
+
+        scope.add_native_fn(
+            "group",
+            NativeFunction::Strict {
+                params: 1,
+                func: Box::new(|args| {
+                    let Some(data @ Value::Object(_)) = args.first() else {
+                        return Err(Box::new(tl::Error::new(
+                            tl::runtime::ErrorType::NativeFnError("The `group` function requires an object as input".into()),
+                            None,
+                        )));
+                    };
+
+                    Ok(object!(kind = Value::String("Group".into()), data = data.clone()))
+                }),
+            },
+        );
+
+        let evaluated: Option<Package> = match scope.eval() {
+            Ok(value) if value != Value::Null => {
+                dbg!(&value);
+                Ok(Some(Deserialize::deserialize(value).map_err(|err| Box::new(make_fatal!("Could not deserialize value: {err}")))?))
+            }
             Ok(_) => Ok(None),
             Err(err) => Err(Box::new(Log::from(*err))),
         }?;
@@ -135,7 +175,7 @@ impl Package {
                     package.name = package.id.clone();
                 }
 
-                package.package_path = package_path;
+                package.path = package_path;
 
                 Ok(package)
             }

@@ -1,12 +1,11 @@
 [package]
 name = "pkg"
 version = "0.1.0"
-edition = "2024"
+edition.workspace = true
 
 [dependencies]
-clap = { workspace = true }
+prelude.workspace = true
 
-logger = { workspace = true }
 libpkg = { path = "libpkg", default-features = false }
 
 [lints]

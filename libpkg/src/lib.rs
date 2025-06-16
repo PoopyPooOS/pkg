@@ -1,13 +1,13 @@
 #![feature(io_error_more, let_chains, if_let_guard, macro_metavar_expr)]
 
+use error::{Context, PackageManagerError};
+use nu_embed::Engine;
 use std::{
     env,
     fmt::Debug,
     path::{Path, PathBuf},
 };
 
-use error::{Context, PackageManagerError};
-use nu_embed::Engine;
 // Re-exports
 pub use tl::Source;
 
@@ -62,7 +62,6 @@ impl PackageManager {
         Ok(())
     }
 
-    #[must_use]
     pub fn root(mut self, root: impl AsRef<Path>) -> Self {
         self.root = root.as_ref().to_path_buf();
         self

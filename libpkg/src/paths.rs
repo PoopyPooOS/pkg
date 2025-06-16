@@ -13,6 +13,7 @@ macro_rules! paths {
                     self.root.join($path)
                 }
 
+                #[allow(dead_code)]
                 $(#[$attr])*
                 pub(crate) fn $name_raw(&self) -> std::path::PathBuf {
                     $path.into()

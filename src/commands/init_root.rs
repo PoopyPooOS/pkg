@@ -1,10 +1,11 @@
-use libpkg::{PackageManager, error::PackageManagerError};
-use logger::{error, info};
+use libpkg::PackageManager;
+use prelude::logger::info;
 
-pub fn init_root(pm: &PackageManager) -> Result<(), PackageManagerError> {
+use crate::{err, error::Error};
+
+pub fn init_root(pm: &PackageManager) -> Result<(), Error> {
     if pm.check_root() {
-        error!("The root that was given is already initialized.");
-        return Ok(());
+        return err!(AlreadyInitialized);
     }
 
     info!("Initializing rootfs at \"{}\"", pm.root.display());

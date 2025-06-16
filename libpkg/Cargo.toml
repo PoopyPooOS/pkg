@@ -1,39 +1,35 @@
 [package]
 name = "libpkg"
 version = "0.1.0"
-edition = "2024"
-
-[lib]
-crate-type = ["dylib", "rlib"]
+edition.workspace = true
 
 [features]
 default = ["repositories"]
 repositories = ["dep:reqwest", "dep:url"]
 
 [dependencies]
+prelude.workspace = true
+tl = { workspace = true, features = ["toml"] }
+
 # Data fetching
 reqwest = { workspace = true, optional = true }
 url = { workspace = true, features = ["serde"], optional = true }
 
 # Serialization
-serde = { workspace = true }
-bincode = { workspace = true }
-serde-inline-default = { workspace = true }
+serde.workspace = true
+bincode.workspace = true
+serde-inline-default.workspace = true
 
 # OS APIs
 rustix = { workspace = true, features = ["fs", "mount"] }
 nix = { workspace = true, features = ["user", "process"] }
-fs_extra = { workspace = true }
+fs_extra.workspace = true
 
 # Nushell
-nu-embed = { workspace = true }
+nu-embed.workspace = true
 
 # Other
-thiserror = { workspace = true }
-glob = { workspace = true }
-
-logger = { workspace = true }
-tl = { workspace = true, features = ["toml"] }
+glob.workspace = true
 
 [lints]
 workspace = true

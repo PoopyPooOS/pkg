@@ -65,7 +65,7 @@ impl crate::PackageManager {
 
                 links_to_remove.extend(links);
             } else {
-                let versions = fs::read_dir(&path)
+                let versions = fs::read_dir(path)
                     .context("remove: list versions")?
                     .filter_map(Result::ok)
                     .map(|entry| entry.file_name().display().to_string());

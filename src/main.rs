@@ -1,37 +1,43 @@
-use clap::Parser;
 use cli::{Cli, Command};
+use error::{err, Error};
 use libpkg::PackageManager;
-use logger::fatal;
 
 mod cli;
 mod commands;
 
-fn main() {
-    let args = Cli::parse();
+mod error {
+    use libpkg::error::PackageManagerError;
+    use prelude::logger::Log;
 
+    #[prelude::error_enum]
+    pub enum Error {
+        #[error("The root that was passed is corrupted.")]
+        CorruptedRoot,
+        #[error("The root that was given is already initialized.")]
+        AlreadyInitialized,
+
+        #[error("{0}")]
+        PkgError(#[from] PackageManagerError),
+    }
+
+    impl From<Box<Log>> for ErrorKind {
+        fn from(value: Box<Log>) -> Self {
+            Self::PkgError(PackageManagerError::PackageEval(value))
+        }
+    }
+}
+
+#[prelude::entry(err: Error)]
+fn main(args: Cli) {
     let pm = PackageManager::new_with_root(args.root);
 
     if args.command.needs_complete_root() && !pm.check_root() {
-        fatal!("The root that was passed is corrupted.");
-        return;
+        return err!(CorruptedRoot);
     }
 
-    macro_rules! command {
-        ($($pat:pat => $command:expr),* $(,)?) => {
-            match args.command {
-                $(
-                    $pat => if let Err(err) = $command {
-                        fatal!("{err}");
-                        return;
-                    }
-                )*
-            }
-        }
-    }
-
-    command!(
+    match args.command {
         Command::Install { source } => commands::install(pm, source),
         Command::Remove { id } => commands::remove(pm, id),
         Command::InitRoot => commands::init_root(&pm),
-    )
+    }
 }

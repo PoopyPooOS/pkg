@@ -1,6 +1,8 @@
-use logger::Log;
+use prelude::{
+    logger::Log,
+    thiserror::{self, Error},
+};
 use std::{io, num::ParseIntError};
-use thiserror::Error;
 
 pub type Result<T> = core::result::Result<T, PackageManagerError>;
 
@@ -56,21 +58,18 @@ pub enum PackageManagerError {
         #[source]
         source: io::Error,
     },
-
     #[error("{context}: {source}")]
     RustixIO {
         context: String,
         #[source]
         source: rustix::io::Errno,
     },
-
     #[error("{context}: {source}")]
     Nix {
         context: String,
         #[source]
         source: nix::errno::Errno,
     },
-
     #[error("{context}: {source}")]
     FS {
         context: String,

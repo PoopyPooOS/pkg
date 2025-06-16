@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand};
+use prelude::clap::{self, Parser, Subcommand};
 use std::path::PathBuf;
 
 #[derive(Debug, Parser)]
@@ -36,7 +36,6 @@ pub enum InstallSource {
     Path(PathBuf),
 }
 
-#[allow(clippy::unnecessary_wraps, reason = "clap requires a Result to be returned")]
 fn parse_install_source(input: &str) -> Result<InstallSource, String> {
     let path = PathBuf::from(input);
 

@@ -1,8 +1,10 @@
-use libpkg::{PackageManager, error::PackageManagerError, event::Event};
-use logger::{error, info, trace};
+use libpkg::{error::PackageManagerError, event::Event, PackageManager};
+use prelude::logger::{error, info, trace};
 use std::{sync::mpsc, thread};
 
-pub fn remove(pm: PackageManager, id: impl ToString) -> Result<(), PackageManagerError> {
+use crate::error::Error;
+
+pub fn remove(pm: PackageManager, id: impl ToString) -> Result<(), Error> {
     let id = id.to_string();
     info!("Removing \"{id}\"");
 
@@ -11,7 +13,7 @@ pub fn remove(pm: PackageManager, id: impl ToString) -> Result<(), PackageManage
 
     while let Ok(event) = rx.recv() {
         use Event as E;
-        use PackageManagerError as Error;
+        use PackageManagerError as PkgError;
 
         match event {
             E::AwaitingUnlock => info!("The package store is locked because of other processes using it"),
@@ -22,8 +24,8 @@ pub fn remove(pm: PackageManager, id: impl ToString) -> Result<(), PackageManage
             }
 
             E::Error(err) => match err {
-                Error::PackageNotInstalled => error!("Package not installed"),
-                _ => return Err(err),
+                PkgError::PackageNotInstalled => error!("Package not installed"),
+                _ => return Err(err.into()),
             },
         }
     }
